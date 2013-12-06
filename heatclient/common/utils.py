@@ -17,6 +17,7 @@ from __future__ import print_function
 import json
 import os
 import prettytable
+import six
 import sys
 import textwrap
 import uuid
@@ -55,6 +56,14 @@ def text_wrap_formatter(d):
 
 def newline_list_formatter(r):
     return '\n'.join(r or [])
+
+
+def scalar_or_json_formatter(d):
+    v = d['value']
+    if isinstance(v, six.string_types + (bool, int, float)):
+        return v
+    else:
+        return json_formatter(v)
 
 
 def print_list(objs, fields, field_labels=None, formatters={}, sortby=None):

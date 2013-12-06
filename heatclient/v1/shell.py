@@ -15,6 +15,7 @@
 
 import json
 import os
+import six
 import urllib
 import yaml
 
@@ -161,6 +162,56 @@ def do_stack_create(hc, args):
 
     hc.stacks.create(**fields)
     do_stack_list(hc)
+
+
+@utils.arg('id', metavar='<NAME or ID>',
+           help='Name or ID of stack to delete.')
+@utils.arg('output', metavar='<OUTPUT_NAME>',
+           help='Name of the output to retrieve.')
+def do_output_show(hc, args):
+    '''Show the value of a single output.'''
+    fields = {'stack_id': args.id}
+    try:
+        stack = hc.stacks.get(**fields)
+        outputs = stack.to_dict()['outputs']
+        for output in outputs:
+            if output['output_key'] == args.output:
+                val = output['output_value']
+                if isinstance(val, six.string_types):
+                    print val
+                else:
+                    print utils.json_formatter(val)
+                break
+        else:
+            raise KeyError(args.output)
+    except exc.HTTPNotFound:
+        raise exc.CommandError('Stack not found: %s' % args.id)
+    except KeyError:
+        raise exc.CommandError('Output not found: %s' % args.output)
+
+
+@utils.arg('id', metavar='<NAME or ID>',
+           help='Name or ID of stack for which to retrieve outputs.')
+def do_output_list(hc, args):
+    '''List the available outputs for a given stack.'''
+    fields = {'stack_id': args.id}
+    try:
+        stack = hc.stacks.get(**fields)
+    except exc.HTTPNotFound:
+        raise exc.CommandError('Stack not found: %s' % args.id)
+    else:
+        formatters = {
+            'Output name': lambda x: x['key'],
+            'Output value': utils.scalar_or_json_formatter,
+        }
+
+        if 'outputs' in stack.to_dict():
+            outputs = [{'key': output['output_key'],
+                        'value': output['output_value']}
+                       for output in stack.to_dict()['outputs']]
+            utils.print_list(outputs, ['Output name', 'Output value'],
+                             sortby=0,
+                             formatters=formatters)
 
 
 @utils.arg('id', metavar='<NAME or ID>', help='Name or ID of stack to delete.')

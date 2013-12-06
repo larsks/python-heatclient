@@ -478,6 +478,53 @@ class ShellTestUserPass(ShellBase):
         for r in required:
             self.assertRegexpMatches(list_text, r)
 
+    def _output_fake_response(self):
+        self._script_keystone_client()
+        resp_dict = {"stack": {
+            "id": "1",
+            "stack_name": "teststack",
+            "stack_status": 'CREATE_COMPLETE',
+            "creation_time": "2012-10-25T01:58:47Z",
+            "outputs": [
+                {
+                    "output_value": "value1",
+                    "output_key": "output1",
+                    "description": "test output 1",
+                },
+                {
+                    "output_value": ["output", "value", "2"],
+                    "output_key": "output2",
+                    "description": "test output 2",
+                },
+            ],
+        }}
+        resp = fakes.FakeHTTPResponse(
+            200,
+            'OK',
+            {'content-type': 'application/json'},
+            json.dumps(resp_dict))
+        v1client.Client.json_request(
+            'GET', '/stacks/teststack/1').AndReturn((resp, resp_dict))
+
+        self.m.ReplayAll()
+
+    def test_output_list(self):
+        self._output_fake_response()
+        list_text = self.shell('output-list teststack/1')
+        for r in ['output1', 'output2']:
+            self.assertRegexpMatches(list_text, r)
+
+    def test_output_show(self):
+        self._output_fake_response()
+        list_text = self.shell('output-show teststack/1 output1')
+        self.assertRegexpMatches(list_text, 'value1')
+
+    def test_output_show_json(self):
+        self._output_fake_response()
+        list_text = self.shell('output-show teststack/1 output2')
+        self.assertEqual(list_text,
+                         '[\n  "output", \n  "value", \n  "2"\n]\n')
+
     def test_template_show_cfn(self):
         self._script_keystone_client()
         template_data = open(os.path.join(TEST_VAR_DIR,

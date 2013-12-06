@@ -65,6 +65,14 @@ List events::
 
     heat event-list mystack
 
+List outputs::
+
+    heat output-list <stack name>
+
+Show the value of a single output::
+
+    heat output-show <stack name> <output key>
+
 Delete a stack::
 
     heat stack-delete mystack
